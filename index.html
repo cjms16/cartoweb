@@ -83,18 +83,11 @@
     const corner1 = L.latLng(47.787327, 7.253229);
     const corner2 = L.latLng(47.705142, 7.430711);
     var grille_mulhouse = L.latLngBounds(corner1, corner2);
-    var maillage = createHexGrid(grille_mulhouse, 0.005);
+    var maillage = createHexGrid(grille_mulhouse, 0.01);
     var tableauIndexAVerdir = [];
 
-    const numOfVehicles = 10;
+    const numOfVehicles = 12;
     var polygons = [];
-
-    // // Créer des polygones et les stocker dans le tableau polygons
-    // for (var i = 0; i < maillage.length; i++) {
-    //     var polygon = maillage[i];
-    //     polygon.properties = { hasVehicle: false };
-    //     polygons.push(polygon);
-    // }
 
     for (let i = 0; i < numOfVehicles; i++) {
         // Génère des points de départ et d'arrivée aléatoires dans les zones définies
@@ -140,26 +133,6 @@
             voiture1.addTo(map);
             let voiture1_index = 0;
 
-            // // Vérifier si le véhicule est dans un polygone et mettre à jour la propriété hasVehicle
-            // polygons.forEach(function(polygon) {
-            //     var latlng = L.latLng(voiture1.getLatLng().lat, voiture1.getLatLng().lng);
-            //     if (L.polygon(polygon.geometry.coordinates).contains(latlng)) {
-            //         polygon.properties.hasVehicle = true;
-            //     }
-            // });
-
-            // // Mettre à jour la couleur de chaque polygone en fonction de la propriété hasVehicle
-            // polygons.forEach(function(polygon) {
-            //     var color = polygon.properties.hasVehicle ? 'green' : 'gray';
-            //     polygon.setStyle({ color: color });
-            // });
-
-            // //MAJ la position de l'animated marker sur le volet stat && MAJ couleur polygones
-            // function updatePositionDisplay() {
-            //     var coords = voiture1.getLatLng();
-            //     document.getElementById("position-display").innerHTML = "Latitude : " + coords.lat + ", Longitude : " + coords.lng;
-            // }
-
             function updateHexagonColor() {
                 if(!isMarkerInsidePolygon(voiture1, maillage[voiture1_index])) {
                     for (let i = 0; i < maillage.length; i++) {
@@ -178,51 +151,15 @@
                 }
                 console.log('tableaux : '+tableauIndexAVerdir);
             }
-
-            // // maj de la position toutes les 0.1 secondes
-            // setInterval(updatePositionDisplay, 100);
             setInterval(updateHexagonColor, 100);
-            
-            
-
-            var stopButton = document.getElementById("btn-stop-animation");
-
-    // // Ajout d'un écouteur d'événements sur le bouton "Stopper"
-    // stopButton.addEventListener("click", function() {
-
-    //     // Suppression de tous les `animatedMarker` de la carte
-    //     animatedMarker.forEach(function(marker) {
-    //         map.removeLayer(marker);
-    //     });
-
-    //     // Suppression de tous les `Routing.control` de la carte
-    //     Routing.control().forEach(function(control) {
-    //         map.removeControl(control);
-    //     });
-
-    // });
-
         });
 
-        
     }
-
     console.log(tableauIndexAVerdir);
 
-    // Récupération du bouton "Stopper"
-    
-
     setInterval(colorierMaillage, 100);
+
     /*
-    Toutes les 0.1s
-    Pour chaque vehicule
-        le localiser dans un polygone (fonction qui retourne l'index du polygone dans lequel il est)
-    On obtient alors un tableau avec les index à colorier en vert (on fait en sorte de prendre un tableau js qui ignore
-                                                        les nombres déjà present dans le tableu : set on qque chose du style)
-    Fonction qui colorie le tableau avec un if l'index du tableau dans le tableau des 
-
-
-
     2e methode : 
         que le marker garde son index avec lui et le comparer a chaque rafraichissement
                 Si pas le même mettre à jour le tableau des index à colorier

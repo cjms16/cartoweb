@@ -136,11 +136,27 @@ function getPolygonIndex(marker, poly) {
   return inside;
 };
 
-//TODO : couleur en fonction du nombre de véhicules : 0=vert / 1=vert / 2=orange / 3 ou plus= rouge
 function colorierMaillage() {
+  const occurences = {};
+  for (let i = 0; i < tableauIndexAVerdir.length; i++) {
+    const index = tableauIndexAVerdir[i];
+    if (occurences[index] === undefined) {
+      occurences[index] = 1;
+    } else {
+      occurences[index]++;
+    }
+  }
   for (let i = 0; i < maillage.length; i++) {
-    if (tableauIndexAVerdir.includes(i)) {
-      maillage[i].setStyle({fillColor: 'green'});
+    const index = tableauIndexAVerdir.indexOf(i);
+    if (index !== -1) {
+      const occurence = occurences[i];
+      if (occurence === 1) {
+        maillage[i].setStyle({fillColor: 'green'});
+      } else if (occurence === 2) {
+        maillage[i].setStyle({fillColor: 'orange'});
+      } else {
+        maillage[i].setStyle({fillColor: 'red'});
+      }
     } else {
       maillage[i].setStyle({fillColor: 'gray'});
     }
