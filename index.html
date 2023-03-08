@@ -4,16 +4,12 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
-     integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
-     crossorigin=""/>
-     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-     integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
-     <!-- Pour le routing : -->
+    <!-- Pour le routing : -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
-    <!--  -->
     <link rel="icon" href="assets/favicon.png">
 
     <title>CartoWeb - Projet</title>
@@ -30,7 +26,7 @@
 
 </head>
 <body>
-     <!-- JS de  Leaflet -->
+    <!-- JS de  Leaflet -->
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
 
     <!-- JS du Routing Leaflet -->
@@ -50,6 +46,9 @@
                 <p id="hexagon-display"></p>
 
                 <div class="container-fluid form-group">
+                    <button id="btn-relancer-animation" class="btn btn-primary">Relancer</button>
+                </div>
+                <div class="container-fluid form-group">
                     <label for="num-routes" class="col-form-label">Nombre d'itinéraires:</label>
                     <select id="num-routes" class="form-control">
                         <option value="1">1</option>
@@ -59,8 +58,8 @@
                         <option value="5">5</option>
                     </select>
                     <br>
-                    <button id="btn-start-animation" class="btn btn-success">Démarrer</button>
-                    <button id="btn-pause-animation" class="btn btn-secondary">Pause</button>
+                    <button id="btn-start-animation" class="btn btn-success disabled">Démarrer</button>
+                    <button id="btn-pause-animation" class="btn btn-secondary disabled">Pause</button>
                     <button id="btn-stop-animation" class="btn btn-danger">Stopper</button>
                 </div>
             </div>
@@ -73,90 +72,149 @@
     const RAYON_ZONE_DEPLACEMENT = 3;
     const VITESSE_DEPLACEMENT = 1000;
 
+    //Initilisation du fond de carte
     var map = L.map('map').setView([CENTRE_MULHOUSE.lat, CENTRE_MULHOUSE.lng], 13);
-
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+    
+    //Maillage du territoire
     const corner1 = L.latLng(47.787327, 7.253229);
     const corner2 = L.latLng(47.705142, 7.430711);
-    grille_mulhouse = L.latLngBounds(corner1, corner2);
+    var grille_mulhouse = L.latLngBounds(corner1, corner2);
+    var maillage = createHexGrid(grille_mulhouse, 0.005);
+    var tableauIndexAVerdir = [];
 
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
+    const numOfVehicles = 10;
+    var polygons = [];
 
-    // Utiliser la fonction pour générer points aléatoire de départ et d'arrivée
-    var startPoint = generateRandomPoint(CENTRE_MULHOUSE.lat, CENTRE_MULHOUSE.lng);
-    var endPoint = generateRandomPoint(CENTRE_MULHOUSE.lat, CENTRE_MULHOUSE.lng);
+    // // Créer des polygones et les stocker dans le tableau polygons
+    // for (var i = 0; i < maillage.length; i++) {
+    //     var polygon = maillage[i];
+    //     polygon.properties = { hasVehicle: false };
+    //     polygons.push(polygon);
+    // }
 
-    //Ajout d'un itineraire entre les deux points AVEC CONTROL
-    var routeControl = L.Routing.control({
-            waypoints: [
-                startPoint,
-                endPoint
-            ],
+    for (let i = 0; i < numOfVehicles; i++) {
+        // Génère des points de départ et d'arrivée aléatoires dans les zones définies
+        var startPoint = getRandomPointInBounds(grille_mulhouse);
+        var endPoint = getRandomPointInBounds(grille_mulhouse);
+
+        // Crée un nouvel itinéraire
+        const routeControl = L.Routing.control({
+            waypoints: [startPoint, endPoint],
             show: false,
-            //collapsed: true //pour cacher le segment
+            lineOptions: {
+                styles: [{
+                    color: 'purple',
+                    opacity: 0.7
+                }]
+            }
         }).addTo(map);
 
-    //Gestionnaire d'évènements pour récupérer tous les points de l'itinéraire (mais qui nous bloque dans le gestionnaire car indispo en dehors)
-    routeControl.on('routeselected', function(e) {
-        var route = e.route;
-        routeArray = route.coordinates;
+        routeControl.on('routeselected', function(e) {
+            var route = e.route;
+            routeArray = route.coordinates;
 
-        for (var i = 0; i < routeArray.length; i++) {
-            var point = routeArray[i];
-            //var circle = L.circleMarker(point, {radius: 5}).addTo(map);
-        }
-
-        var voiture1 = L.animatedMarker(
-            routeArray,
-            {
-                distance: 1000, // Distance parcourue en millisecondes
-                interval: 200, // Intervalle entre les positions en millisecondes
-                icon: L.icon({
-                    iconUrl: 'assets/marker-icon.png',
-                    iconSize: [25, 41],
-                    iconAnchor: [12, 41],
-                    // shadowUrl: 'assets/marker-shadow.png',
-                    shadowSize: [41, 41],
-                    shadowAnchor: [12, 41],
-                    iconBorderColor: '#444'
-                }),
-                autoStart: true, // Démarrer automatiquement l'animation
-                onEnd: function() {
-                console.log("Trajet terminée !");
+            let voiture1 = L.animatedMarker(
+                routeArray,
+                {
+                    distance: 1000, // Distance parcourue en millisecondes
+                    interval: 200, // Intervalle entre les positions en millisecondes
+                    icon: L.icon({
+                        iconUrl: 'assets/marker-icon.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        shadowSize: [41, 41],
+                        shadowAnchor: [12, 41],
+                        iconBorderColor: '#444'
+                    }),
+                    autoStart: true, // Démarrer automatiquement l'animation
+                    onEnd: function() {
+                        console.log("Trajet terminée !");
+                        }
                 }
-            }
-        );
-        voiture1.addTo(map);
+            );
+            voiture1.addTo(map);
 
-        const squareGrid = createHexGrid(grille_mulhouse, 0.005);
+            // // Vérifier si le véhicule est dans un polygone et mettre à jour la propriété hasVehicle
+            // polygons.forEach(function(polygon) {
+            //     var latlng = L.latLng(voiture1.getLatLng().lat, voiture1.getLatLng().lng);
+            //     if (L.polygon(polygon.geometry.coordinates).contains(latlng)) {
+            //         polygon.properties.hasVehicle = true;
+            //     }
+            // });
 
-        //MAJ la position de l'animated marker sur le volet stat && MAJ couleur polygones
-        function updatePositionDisplay() {
-            var coords = voiture1.getLatLng();
-            document.getElementById("position-display").innerHTML = "Latitude : " + coords.lat + ", Longitude : " + coords.lng;
-        }
+            // // Mettre à jour la couleur de chaque polygone en fonction de la propriété hasVehicle
+            // polygons.forEach(function(polygon) {
+            //     var color = polygon.properties.hasVehicle ? 'green' : 'gray';
+            //     polygon.setStyle({ color: color });
+            // });
 
-        function updateHexagonColor() {
-            for (let i = 0; i < squareGrid.length; i++) {
-                const hex = squareGrid[i].getBounds();
-                if (hex.contains(voiture1.getLatLng())) { //if(isMarkerInsidePolygon(voiture1.getLatLng().lat,voiture1.getLatLng().lng, squareGrid[i])) {
-                    squareGrid[i].setStyle({fillColor: 'green'});
-                    document.getElementById("hexagon-display").innerHTML = "Index de l'hexagone : " + i;
-                } else {
-                    squareGrid[i].setStyle({fillColor: 'gray'});
+            // //MAJ la position de l'animated marker sur le volet stat && MAJ couleur polygones
+            // function updatePositionDisplay() {
+            //     var coords = voiture1.getLatLng();
+            //     document.getElementById("position-display").innerHTML = "Latitude : " + coords.lat + ", Longitude : " + coords.lng;
+            // }
+
+            function updateHexagonColor() {
+                for (let i = 0; i < maillage.length; i++) {
+                    const hex = maillage[i].getBounds();
+                    if(isMarkerInsidePolygon(voiture1, maillage[i])) {
+                        //maillage[i].setStyle({fillColor: 'green'});
+                        tableauIndexAVerdir.push(i);
+                    }
+                    // else {
+                    //     maillage[i].setStyle({fillColor: 'gray'});
+                    // } 
                 }
+                // console.log(tableauIndexAVerdir);
+                colorierMaillage(tableauIndexAVerdir,maillage);
             }
-        }
 
-        // maj de la position toutes les 0.1 secondes
-        setInterval(updatePositionDisplay, 100);
-        setInterval(updateHexagonColor, 100);
+            function cleanTableauVert() {
+                tableauIndexAVerdir = [];
+            }
 
-    });
+            // // maj de la position toutes les 0.1 secondes
+            // setInterval(updatePositionDisplay, 100);
+            setInterval(updateHexagonColor, 100);
+            setInterval(cleanTableauVert, 1000); //Pour avoir le temps de colorier avant de décolorier
+
+            var stopButton = document.getElementById("btn-stop-animation");
+
+    // // Ajout d'un écouteur d'événements sur le bouton "Stopper"
+    // stopButton.addEventListener("click", function() {
+
+    //     // Suppression de tous les `animatedMarker` de la carte
+    //     animatedMarker.forEach(function(marker) {
+    //         map.removeLayer(marker);
+    //     });
+
+    //     // Suppression de tous les `Routing.control` de la carte
+    //     Routing.control().forEach(function(control) {
+    //         map.removeControl(control);
+    //     });
+
+    // });
+
+        });
+    }
+
+    // Récupération du bouton "Stopper"
+    
+
+
+    /*
+    Toutes les 0.1s
+    Pour chaque vehicule
+        le localiser dans un polygone (fonction qui retourne l'index du polygone dans lequel il est)
+    On obtient alors un tableau avec les index à colorier en vert (on fait en sorte de prendre un tableau js qui ignore
+                                                        les nombres déjà present dans le tableu : set on qque chose du style)
+    Fonction qui colorie le tableau avec un if l'index du tableau dans le tableau des 
+    */
 
     </script>
-
 </body>
 </html>

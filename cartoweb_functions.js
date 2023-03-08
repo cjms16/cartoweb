@@ -10,11 +10,11 @@ function createHexGrid(bounds, hexSize) {
   const rows = Math.ceil((bounds.getNorth() - bounds.getSouth()) / (hexHeight * 0.75));
   const evenRowCols = Math.ceil((bounds.getEast() - bounds.getWest()) / hexWidth);
   const oddRowCols = Math.ceil(((bounds.getEast() - bounds.getWest()) - (hexWidth / 2)) / hexWidth);
-  const numCols = Math.max(evenRowCols, oddRowCols);
   
   const grid = [];
   
   for (let i = 0; i < rows; i++) {
+    
       const y = bounds.getSouth() + i * hexHeight * 0.75;
       const cols = i % 2 === 0 ? evenRowCols : oddRowCols;
       for (let j = 0; j < cols; j++) {
@@ -23,15 +23,16 @@ function createHexGrid(bounds, hexSize) {
           color : 'gray',
           fillOpacity: 0.3
       }).addTo(map);
+
       hex.setLatLngs([
-          [y + hexSize, x],
-          [y + hexSize / 2, x + hexWidth / 2],
-          [y - hexSize / 2, x + hexWidth / 2],
-          [y - hexSize, x],
-          [y - hexSize / 2, x - hexWidth / 2],
-          [y + hexSize / 2, x - hexWidth / 2]
-      ]);
-      grid.push(hex);
+            [y + hexSize, x],
+            [y + hexSize / 2, x + hexWidth / 2],
+            [y - hexSize / 2, x + hexWidth / 2],
+            [y - hexSize, x],
+            [y - hexSize / 2, x - hexWidth / 2],
+            [y + hexSize / 2, x - hexWidth / 2]
+        ]);
+        grid.push(hex);
       }
   }
   
@@ -68,14 +69,14 @@ function createSquareGrid(bounds, squareGrid) {
 
 
 function getHexVertices(size) {
-const vertices = [];
-for (let i = 0; i < 6; i++) {
-  const angle = 2 * Math.PI / 6 * i;
-  const x = size * Math.cos(angle);
-  const y = size * Math.sin(angle);
-  vertices.push([y, x]);
-}
-return vertices;
+  const vertices = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = 2 * Math.PI / 6 * i;
+    const x = size * Math.cos(angle);
+    const y = size * Math.sin(angle);
+    vertices.push([y, x]);
+  }
+  return vertices;
 }
 
 //MAJ la position de l'animated marker sur le volet stat
@@ -86,56 +87,79 @@ function updatePositionDisplay(voiture) {
   document.getElementById("position-display").innerHTML = "Latitude : " + coords.lat + ", Longitude : " + coords.lng;
 }
 
+//fonction à déprécier
 function generateRandomPoint(latitude, longitude) {
   // Générez un rayon aléatoire en degrés (0 à 360)
   var radius = Math.random() * 360;
-
   // Convertissez le rayon en radians
   var radians = radius * Math.PI / 180;
-
   // Calculez la distance en degrés en utilisant la formule de Haversine
   var distance = RAYON_ZONE_DEPLACEMENT / 111.12;
-
   // Calculez la nouvelle latitude en utilisant la formule de Haversine
   var newLatitude = latitude + (distance * Math.cos(radians));
-
   // Calculez la nouvelle longitude en utilisant la formule de Haversine
   var newLongitude = longitude + (distance * Math.sin(radians) / Math.cos(latitude * Math.PI / 180));
-
   // Retournez le nouveau point sous forme de LatLng Leaflet
   return L.latLng(newLatitude, newLongitude);
 }
 
-function isMarkerInsidePolygon(x, y, poly) {
-    
-    let polyPoints = poly.getLatLngs();       
+//nouvelle fonctions
+function getRandomPointInBounds(bounds) {
+  var southWest = bounds.getSouthWest();
+  var northEast = bounds.getNorthEast();
+  
+  var lngSpan = northEast.lng - southWest.lng;
+  var latSpan = northEast.lat - southWest.lat;
+  
+  var randomLng = Math.random() * lngSpan + southWest.lng;
+  var randomLat = Math.random() * latSpan + southWest.lat;
+  
+  return L.latLng(randomLat, randomLng);
+}
 
-    let inside = false;
-    for (var i = 0, j = polyPoints.length - 1; i < polyPoints.length; j = i++) {
-        let xi = polyPoints[i].lat, yi = polyPoints[i].lng;
-        let xj = polyPoints[j].lat, yj = polyPoints[j].lng;
 
-        let intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi); //A REVOIR
-        if (intersect) inside = !inside;
+function isMarkerInsidePolygon(marker, poly) {
+  var polyPoints = poly.getLatLngs()[0];
+  var x = marker.getLatLng().lat, y = marker.getLatLng().lng;
+
+  var inside = false;
+  for (var i = 0, j = polyPoints.length - 1; i < polyPoints.length; j = i++) {
+      var xi = polyPoints[i].lat, yi = polyPoints[i].lng;
+      var xj = polyPoints[j].lat, yj = polyPoints[j].lng;
+
+      var intersect = ((yi > y) != (yj > y))
+          && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+  }
+
+  return inside;
+};
+
+function colorierMaillage(tableauIndexAVerdir, maillage) {
+  for (let i = 0; i < maillage.length; i++) {
+    if (tableauIndexAVerdir.includes(i)) {
+      maillage[i].setStyle({fillColor: 'green'});
+    } else {
+      maillage[i].setStyle({fillColor: 'gray'});
     }
-    console.log(inside);
-    return inside;
+  }
 }
 
-//MAJ la position de l'animated marker sur le volet stat && MAJ couleur polygones
-function updatePositionDisplay(voiture) {
-    var coords = voiture.getLatLng();
-    document.getElementById("position-display").innerHTML = "Latitude : " + coords.lat + ", Longitude : " + coords.lng;
-}
 
-function updateHexagonColor(voiture) {
-    for (let i = 0; i < squareGrid.length; i++) {
-        const hex = squareGrid[i].getBounds();
-        if (hex.contains(voiture.getLatLng())) { //if(isMarkerInsidePolygon(voiture1.getLatLng().lat,voiture1.getLatLng().lng, squareGrid[i])) {
-            squareGrid[i].setStyle({fillColor: 'green'});
-            document.getElementById("hexagon-display").innerHTML = "Index de l'hexagone : " + i;
-        } else {
-            squareGrid[i].setStyle({fillColor: 'gray'});
-        }
-    }
-}
+// //MAJ la position de l'animated marker sur le volet stat && MAJ couleur polygones
+// function updatePositionDisplay(voiture) {
+//     var coords = voiture.getLatLng();
+//     document.getElementById("position-display").innerHTML = "Latitude : " + coords.lat + ", Longitude : " + coords.lng;
+// }
+
+// function updateHexagonColor(voiture) {
+//     for (let i = 0; i < squareGrid.length; i++) {
+//         const hex = squareGrid[i].getBounds();
+//         if (hex.contains(voiture.getLatLng())) { //if(isMarkerInsidePolygon(voiture1.getLatLng().lat,voiture1.getLatLng().lng, squareGrid[i])) {
+//             squareGrid[i].setStyle({fillColor: 'green'});
+//             document.getElementById("hexagon-display").innerHTML = "Index de l'hexagone : " + i;
+//         } else {
+//             squareGrid[i].setStyle({fillColor: 'gray'});
+//         }
+//     }
+// }
