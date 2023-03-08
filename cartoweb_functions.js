@@ -87,22 +87,6 @@ function updatePositionDisplay(voiture) {
   document.getElementById("position-display").innerHTML = "Latitude : " + coords.lat + ", Longitude : " + coords.lng;
 }
 
-//fonction à déprécier
-function generateRandomPoint(latitude, longitude) {
-  // Générez un rayon aléatoire en degrés (0 à 360)
-  var radius = Math.random() * 360;
-  // Convertissez le rayon en radians
-  var radians = radius * Math.PI / 180;
-  // Calculez la distance en degrés en utilisant la formule de Haversine
-  var distance = RAYON_ZONE_DEPLACEMENT / 111.12;
-  // Calculez la nouvelle latitude en utilisant la formule de Haversine
-  var newLatitude = latitude + (distance * Math.cos(radians));
-  // Calculez la nouvelle longitude en utilisant la formule de Haversine
-  var newLongitude = longitude + (distance * Math.sin(radians) / Math.cos(latitude * Math.PI / 180));
-  // Retournez le nouveau point sous forme de LatLng Leaflet
-  return L.latLng(newLatitude, newLongitude);
-}
-
 //nouvelle fonctions
 function getRandomPointInBounds(bounds) {
   var southWest = bounds.getSouthWest();
@@ -135,7 +119,25 @@ function isMarkerInsidePolygon(marker, poly) {
   return inside;
 };
 
-function colorierMaillage(tableauIndexAVerdir, maillage) {
+function getPolygonIndex(marker, poly) {
+  var polyPoints = poly.getLatLngs()[0];
+  var x = marker.getLatLng().lat, y = marker.getLatLng().lng;
+
+  var inside = false;
+  for (var i = 0, j = polyPoints.length - 1; i < polyPoints.length; j = i++) {
+      var xi = polyPoints[i].lat, yi = polyPoints[i].lng;
+      var xj = polyPoints[j].lat, yj = polyPoints[j].lng;
+
+      var intersect = ((yi > y) != (yj > y))
+          && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+  }
+
+  return inside;
+};
+
+//TODO : couleur en fonction du nombre de véhicules : 0=vert / 1=vert / 2=orange / 3 ou plus= rouge
+function colorierMaillage() {
   for (let i = 0; i < maillage.length; i++) {
     if (tableauIndexAVerdir.includes(i)) {
       maillage[i].setStyle({fillColor: 'green'});
@@ -144,6 +146,27 @@ function colorierMaillage(tableauIndexAVerdir, maillage) {
     }
   }
 }
+
+function ajouterIndex(valeur) {
+  if (tableauIndexAVerdir[valeur]) { // si la valeur existe déjà, on incrémente son compteur
+    tableauIndexAVerdir[valeur]++;
+  } else { // sinon, on l'ajoute avec un compteur initial de 1
+    tableauIndexAVerdir[valeur] = 1;
+  }
+}
+function supprimerIndex(valeur) {
+  if (tableauIndexAVerdir[valeur]) { // si la valeur existe dans l'objet
+    tableauIndexAVerdir[valeur]--; // on décrémente son compteur
+    if (tableauIndexAVerdir[valeur] === 0) { // si le compteur atteint zéro, on supprime la propriété correspondante
+      delete tableauIndexAVerdir[valeur];
+    }
+  }
+}
+
+function chercherIndex(index) {
+  return tableauIndexAVerdir.hasOwnProperty(index);
+}
+
 
 
 // //MAJ la position de l'animated marker sur le volet stat && MAJ couleur polygones

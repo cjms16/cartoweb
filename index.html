@@ -131,12 +131,14 @@
                         iconBorderColor: '#444'
                     }),
                     autoStart: true, // Démarrer automatiquement l'animation
+                    opacity: 0.5,
                     onEnd: function() {
                         console.log("Trajet terminée !");
                         }
                 }
             );
             voiture1.addTo(map);
+            let voiture1_index = 0;
 
             // // Vérifier si le véhicule est dans un polygone et mettre à jour la propriété hasVehicle
             // polygons.forEach(function(polygon) {
@@ -159,28 +161,29 @@
             // }
 
             function updateHexagonColor() {
-                for (let i = 0; i < maillage.length; i++) {
-                    const hex = maillage[i].getBounds();
-                    if(isMarkerInsidePolygon(voiture1, maillage[i])) {
-                        //maillage[i].setStyle({fillColor: 'green'});
-                        tableauIndexAVerdir.push(i);
+                if(!isMarkerInsidePolygon(voiture1, maillage[voiture1_index])) {
+                    for (let i = 0; i < maillage.length; i++) {
+                        if(isMarkerInsidePolygon(voiture1, maillage[i])) {
+                            //SUPPRESSION DU TABLEAU
+                            const index = tableauIndexAVerdir.indexOf(voiture1_index);
+                            if (index > -1) { // only splice array when item is found
+                                tableauIndexAVerdir.splice(index, 1); // 2nd parameter means remove one item only
+                            }
+                            //REMPLACEMENT VOITURE
+                            voiture1_index = i;
+                            //AJOUT NOUVELLE VALEUR
+                            tableauIndexAVerdir.push(voiture1_index);
+                        }
                     }
-                    // else {
-                    //     maillage[i].setStyle({fillColor: 'gray'});
-                    // } 
                 }
-                // console.log(tableauIndexAVerdir);
-                colorierMaillage(tableauIndexAVerdir,maillage);
-            }
-
-            function cleanTableauVert() {
-                tableauIndexAVerdir = [];
+                console.log('tableaux : '+tableauIndexAVerdir);
             }
 
             // // maj de la position toutes les 0.1 secondes
             // setInterval(updatePositionDisplay, 100);
             setInterval(updateHexagonColor, 100);
-            setInterval(cleanTableauVert, 1000); //Pour avoir le temps de colorier avant de décolorier
+            
+            
 
             var stopButton = document.getElementById("btn-stop-animation");
 
@@ -200,12 +203,16 @@
     // });
 
         });
+
+        
     }
+
+    console.log(tableauIndexAVerdir);
 
     // Récupération du bouton "Stopper"
     
 
-
+    setInterval(colorierMaillage, 100);
     /*
     Toutes les 0.1s
     Pour chaque vehicule
@@ -213,6 +220,12 @@
     On obtient alors un tableau avec les index à colorier en vert (on fait en sorte de prendre un tableau js qui ignore
                                                         les nombres déjà present dans le tableu : set on qque chose du style)
     Fonction qui colorie le tableau avec un if l'index du tableau dans le tableau des 
+
+
+
+    2e methode : 
+        que le marker garde son index avec lui et le comparer a chaque rafraichissement
+                Si pas le même mettre à jour le tableau des index à colorier
     */
 
     </script>
