@@ -4,6 +4,7 @@ var liste_couleur_marqueur = ['#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51
 // Générez un index de couleur aléatoire en utilisant la longueur de votre tableau de couleurs
 var randomColor = Math.floor(Math.random() * liste_couleur_marqueur.length);
 
+//
 function createHexGrid(bounds, hexSize) {
   const hexWidth = hexSize * Math.sqrt(3);
   const hexHeight = hexSize * 2;
@@ -62,7 +63,6 @@ function createSquareGrid(bounds, squareGrid) {
       squares.push(square);
     }
   }
-
   // Retourner le tableau de carrés
   return squares;
 }
@@ -181,6 +181,31 @@ function supprimerIndex(valeur) {
 
 function chercherIndex(index) {
   return tableauIndexAVerdir.hasOwnProperty(index);
+}
+
+function getLatLngArray(startCoords, endCoords, callback) {
+  const url = `https://graphhopper.com/api/1/route?point=${startCoords}&point=${endCoords}&vehicle=car&debug=true&key=c760d47f-e275-4f74-a797-63c7fa7610b0&type=gpx`;
+
+  https.get(url, (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+          data += chunk;
+      });
+      res.on('end', () => {
+          const content = data.toString();
+          const latLngArray = [];
+          const regex = /<trkpt lat="([-0-9.]+)" lon="([-0-9.]+)">/g;
+          let match;
+          while ((match = regex.exec(content))) {
+              const lat = parseFloat(match[1]);
+              const lng = parseFloat(match[2]);
+              latLngArray.push({ lat, lng });
+          }
+          return latLngArray;
+      });
+  }).on("error", (err) => {
+      console.log("Error: " + err.message);
+  });
 }
 
 
