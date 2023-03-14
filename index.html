@@ -60,7 +60,8 @@
                     <br>
                     <button id="btn-start-animation" class="btn btn-success disabled">Démarrer</button>
                     <button id="btn-pause-animation" class="btn btn-secondary disabled">Pause</button>
-                    <button id="btn-stop-animation" class="btn btn-danger">Stopper</button>
+                    <button id="btn-stop-animation" class="btn btn-danger disabled">Stopper</button>
+                    <button id="btn-hide-animation" class="btn btn-dark">Cacher</button>
                 </div>
             </div>
         </div>
@@ -69,6 +70,7 @@
     <script>
 
     const CENTRE_MULHOUSE = { lat: 47.7496926, lng: 7.3372857 };
+    const CENTRE_CERNAY = {lat : 47.807874, lng : 7.175671};
     const RAYON_ZONE_DEPLACEMENT = 3;
     const VITESSE_DEPLACEMENT = 1000;
 
@@ -76,34 +78,42 @@
     var map = L.map('map').setView([CENTRE_MULHOUSE.lat, CENTRE_MULHOUSE.lng], 13);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution: '&copy; <a href="http://www.osm.org/copyright">OpenStreetMap</a>'
         }).addTo(map);
     
     //Maillage du territoire
-    const corner1 = L.latLng(47.787327, 7.253229);
-    const corner2 = L.latLng(47.705142, 7.430711);
-    var grille_mulhouse = L.latLngBounds(corner1, corner2);
-    var maillage = createHexGrid(grille_mulhouse, 0.01);
+    const cornerhautgauche_mulhouse = L.latLng(47.787327, 7.253229);
+    const cornerbasdroite_mulhouse = L.latLng(47.705142, 7.430711);
+    const cornerhautgauche_cernay = L.latLng(47.821156, 7.149889);
+    const cornerbasdroite_cernay = L.latLng(47.800593, 7.192865);
+    const cornerhautgauche_autoroute = L.latLng(47.859628, 7.386147);
+    const cornerbasdroite_autoroute = L.latLng(47.814262, 7.398680);
+    var surface = L.latLngBounds(cornerhautgauche_mulhouse, cornerbasdroite_mulhouse);
+    var maillage = createHexGrid(surface, 0.005);
     var tableauIndexAVerdir = [];
 
     const numOfVehicles = 12;
     var polygons = [];
 
     for (let i = 0; i < numOfVehicles; i++) {
+        setTimeout(function() {
+        // pause
+        }, 200);
+
         // Génère des points de départ et d'arrivée aléatoires dans les zones définies
-        var startPoint = getRandomPointInBounds(grille_mulhouse);
-        var endPoint = getRandomPointInBounds(grille_mulhouse);
+        var startPoint = getRandomPointInBounds(surface);
+        var endPoint = getRandomPointInBounds(surface);
 
         // Crée un nouvel itinéraire
         const routeControl = L.Routing.control({
             waypoints: [startPoint, endPoint],
-            show: false,
+            // show: false,
             lineOptions: {
-                styles: [{
-                    color: 'purple',
-                    opacity: 0.7
-                }]
-            }
+                styles: [{color: 'purple', opacity: 0.6 }]
+            },
+            createMarker: function() { return null; },
+            fitSelectedRoutes : false
+            // waypointMode: snap
         }).addTo(map);
 
         routeControl.on('routeselected', function(e) {
@@ -113,16 +123,16 @@
             let voiture1 = L.animatedMarker(
                 routeArray,
                 {
-                    distance: 1000, // Distance parcourue en millisecondes
+                    // distance: 1000, // Distance parcourue en millisecondes
                     interval: 200, // Intervalle entre les positions en millisecondes
-                    icon: L.icon({
-                        iconUrl: 'assets/marker-icon.png',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        shadowSize: [41, 41],
-                        shadowAnchor: [12, 41],
-                        iconBorderColor: '#444'
-                    }),
+                    // icon: L.icon({
+                    //     iconUrl: 'assets/marker-icon.png',
+                    //     iconSize: [25, 41],
+                    //     iconAnchor: [12, 41],
+                    //     shadowSize: [41, 41],
+                    //     shadowAnchor: [12, 41],
+                    //     iconBorderColor: '#444'
+                    // }),
                     autoStart: true, // Démarrer automatiquement l'animation
                     opacity: 0.5,
                     onEnd: function() {
@@ -131,10 +141,13 @@
                 }
             );
             voiture1.addTo(map);
-            let voiture1_index = 0;
+            let voiture1_index = 0; //Initilisation de l'index du polygone dans lequel il se situe
 
+            //Optimisable : avec tableau 2d, on peut directmenet deduire le polygones avec coordones
             function updateHexagonColor() {
                 if(!isMarkerInsidePolygon(voiture1, maillage[voiture1_index])) {
+                    //Deux choix : soit il est dans un autre polygone
+                    outside_maillage = true;
                     for (let i = 0; i < maillage.length; i++) {
                         if(isMarkerInsidePolygon(voiture1, maillage[i])) {
                             //SUPPRESSION DU TABLEAU
@@ -146,25 +159,55 @@
                             voiture1_index = i;
                             //AJOUT NOUVELLE VALEUR
                             tableauIndexAVerdir.push(voiture1_index);
+                            
+                            outside_maillage = false;
+                        }
+                    }
+                    //Soit il est en dehors du maillage
+                    if(outside_maillage) {
+                        //SUPPRESSION DU TABLEAU SANS AJOUT
+                        const index = tableauIndexAVerdir.indexOf(voiture1_index);
+                        if (index > -1) { // only splice array when item is found
+                            tableauIndexAVerdir.splice(index, 1); // 2nd parameter means remove one item only
                         }
                     }
                 }
-                console.log('tableaux : '+tableauIndexAVerdir);
             }
             setInterval(updateHexagonColor, 100);
+
+            // nouveau gestionnaire d'évenement pour le bouton "stop-routes"
+    document.getElementById("btn-hide-animation").addEventListener("click", function() {
+        // Supprimer tous les points de dep et arrive
+        routeControl.setWaypoints([]);
+
+        // Effacer toutes les couches d'itinraire existante
+        voiture1.remove();
+    });
         });
-
     }
-    console.log(tableauIndexAVerdir);
-
     setInterval(colorierMaillage, 100);
 
-    /*
-    2e methode : 
-        que le marker garde son index avec lui et le comparer a chaque rafraichissement
-                Si pas le même mettre à jour le tableau des index à colorier
-    */
 
+    //-----------  CONTROLES BOUTONS HTML HORS CARTE 6---------------------
+// Ajoutez un gestionnaire d'événements pour le bouton "hide-all"
+document.getElementById("btn-hide-animation").addEventListener("click", function() {
+    // Bouclez sur tous les animatedMarker de la carte et masquez-les
+    map.eachLayer(function(layer) {
+        if (layer instanceof L.Marker && layer.isAnimated()) {
+            layer.setOpacity(0);
+        }
+    });
+
+    // Cachez tous les routing.controls de la carte
+    document.querySelectorAll(".leaflet-routing-container").forEach(function(container) {
+        container.style.display = "none";
+    });
+});
+    
+
+/*
+Lambert93
+*/
     </script>
 </body>
 </html>
