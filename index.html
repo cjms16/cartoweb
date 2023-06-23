@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -46,20 +46,36 @@
                 <p id="hexagon-display"></p>
 
                 <div class="container-fluid form-group">
-                    <button id="btn-relancer-animation" class="btn btn-primary">Relancer</button>
+                    <input type="button" class="btn btn-primary" onclick='window.location.reload(false)' value="Relancer"/>
+                    <!-- <button id="btn-relancer-animation" class="btn btn-primary">Relancer</button> -->
                 </div>
+                <br><br>
                 <div class="container-fluid form-group">
                     <label for="num-routes" class="col-form-label">Nombre d'itinéraires:</label>
-                    <select id="num-routes" class="form-control">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                    </select>
-                    <br>
+                    <div class="row">
+                        <div class="col-7">
+                            <select id="num-routes" class="form-control">
+                                <option value="10">10</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="500">500</option>
+                                <option value="1000">1000</option>
+                            </select>
+                        </div>
+                        <div class="col-5">
+                            <button id="btn-start-maj-nb-vehicules" class="btn btn-success">Mettre à jour</button>
+                        </div>
+                    </div>
+                    
+                    <br><br>
+
+                    <label for="customRange2" class="form-label">Réglage de la vitesse</label>
+                    <input type="range" class="form-range" min="0" max="10" id="slider_vitesse">
+
+                    <br><br><br>
+
                     <button id="btn-start-animation" class="btn btn-success disabled">Démarrer</button>
-                    <button id="btn-pause-animation" class="btn btn-secondary disabled">Pause</button>
+                    <button id="btn-pause-animation" class="btn btn-secondary">Pause</button>
                     <button id="btn-stop-animation" class="btn btn-danger disabled">Stopper</button>
                     <button id="btn-hide-animation" class="btn btn-dark">Cacher</button>
                 </div>
@@ -69,7 +85,7 @@
 
     <script>
 
-    const CENTRE_MULHOUSE = { lat: 47.7496926, lng: 7.3372857 };
+    const CENTRE_MULHOUSE = {lat: 47.7496926, lng: 7.3372857};
     const CENTRE_CERNAY = {lat : 47.807874, lng : 7.175671};
     const RAYON_ZONE_DEPLACEMENT = 3;
     const VITESSE_DEPLACEMENT = 1000;
@@ -96,9 +112,9 @@
     var polygons = [];
 
     for (let i = 0; i < numOfVehicles; i++) {
-        setTimeout(function() {
-        // pause
-        }, 200);
+        // setTimeout(function() {
+        // // pause
+        // }, 200);
 
         // Génère des points de départ et d'arrivée aléatoires dans les zones définies
         var startPoint = getRandomPointInBounds(surface);
@@ -125,19 +141,11 @@
                 {
                     // distance: 1000, // Distance parcourue en millisecondes
                     interval: 200, // Intervalle entre les positions en millisecondes
-                    // icon: L.icon({
-                    //     iconUrl: 'assets/marker-icon.png',
-                    //     iconSize: [25, 41],
-                    //     iconAnchor: [12, 41],
-                    //     shadowSize: [41, 41],
-                    //     shadowAnchor: [12, 41],
-                    //     iconBorderColor: '#444'
-                    // }),
                     autoStart: true, // Démarrer automatiquement l'animation
                     opacity: 0.5,
                     onEnd: function() {
-                        console.log("Trajet terminée !");
-                        }
+                        console.log("Fin du Trajet !");
+                    }
                 }
             );
             voiture1.addTo(map);
@@ -176,33 +184,39 @@
             setInterval(updateHexagonColor, 100);
 
             // nouveau gestionnaire d'évenement pour le bouton "stop-routes"
-    document.getElementById("btn-hide-animation").addEventListener("click", function() {
-        // Supprimer tous les points de dep et arrive
-        routeControl.setWaypoints([]);
+            document.getElementById("btn-hide-animation").addEventListener("click", function() {
+                // Supprimer tous les points de dep et arrive
+                //routeControl.setWaypoints([]);
+                // Effacer toutes les couches d'itinraire existante
+                voiture1.remove();
+                
+            });
 
-        // Effacer toutes les couches d'itinraire existante
-        voiture1.remove();
-    });
+            // nouveau gestionnaire d'évenement pour le bouton de pause
+            document.getElementById("btn-pause-animation").addEventListener("click", function() {
+                voiture1.stop();
+            });
         });
     }
     setInterval(colorierMaillage, 100);
 
 
     //-----------  CONTROLES BOUTONS HTML HORS CARTE 6---------------------
-// Ajoutez un gestionnaire d'événements pour le bouton "hide-all"
-document.getElementById("btn-hide-animation").addEventListener("click", function() {
-    // Bouclez sur tous les animatedMarker de la carte et masquez-les
-    map.eachLayer(function(layer) {
-        if (layer instanceof L.Marker && layer.isAnimated()) {
-            layer.setOpacity(0);
-        }
-    });
+    // Ajoutez un gestionnaire d'événements pour le bouton "hide-all"
+    // document.getElementById("btn-hide-animation").addEventListener("click", function() {
+    //     // Bouclez sur tous les animatedMarker de la carte et masquez-les
+    //     map.eachLayer(function(layer) {
+    //         if (layer instanceof L.Marker && layer.isAnimated()) {
+    //             layer.setOpacity(0);
+    //         }
+    //         console.log('caca');
+    //     });
 
-    // Cachez tous les routing.controls de la carte
-    document.querySelectorAll(".leaflet-routing-container").forEach(function(container) {
-        container.style.display = "none";
-    });
-});
+    //     // // Cachez tous les routing.controls de la carte
+    //     // document.querySelectorAll(".leaflet-routing-container").forEach(function(container) {
+    //     //     container.style.display = "none";
+    //     // });
+    // });
     
 
 /*
