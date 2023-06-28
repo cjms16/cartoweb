@@ -1,12 +1,14 @@
 // Créez un tableau de couleurs que vous souhaitez utiliser pour vos marqueurs
 var liste_couleur_marqueur = ['#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4', '#009688', '#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800', '#FF5722', '#795548', '#9E9E9E', '#607D8B'];
 
+
+
 // Générez un index de couleur aléatoire en utilisant la longueur de votre tableau de couleurs
 var randomColor = Math.floor(Math.random() * liste_couleur_marqueur.length);
 
 //
 function createHexGrid(bounds, hexSize) {
-  const hexWidth = hexSize * Math.sqrt(3);
+  const hexWidth = hexSize * Math.sqrt(6);
   const hexHeight = hexSize * 2;
   const rows = Math.ceil((bounds.getNorth() - bounds.getSouth()) / (hexHeight * 0.75));
   const evenRowCols = Math.ceil((bounds.getEast() - bounds.getWest()) / hexWidth);
